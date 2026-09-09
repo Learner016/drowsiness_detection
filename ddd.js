@@ -54,7 +54,7 @@ function drawFace(landmarks) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const points = landmarks.map(p => ({ x:p.x*canvas.width, y:p.y*canvas.height }));
   const xs=points.map(p=>p.x), ys=points.map(p=>p.y);
-  ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); ctx.strokeStyle=ctx.fillStyle="#3cc850"; ctx.lineWidth=3;
+  ctx.save(); ctx.strokeStyle=ctx.fillStyle="#3cc850"; ctx.lineWidth=3;
   ctx.strokeRect(Math.min(...xs), Math.min(...ys), Math.max(...xs)-Math.min(...xs), Math.max(...ys)-Math.min(...ys));
   for (const index of [...LEFT,...RIGHT]) { const p=points[index]; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill(); }
   ctx.restore();
