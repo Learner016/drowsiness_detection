@@ -53,9 +53,9 @@ h1 {
 
 .videoBox canvas {
   pointer-events: none;
-  /* No CSS transform here anymore - app.js mirrors the
-     canvas drawing space directly inside draw(), so this
-     element is left un-transformed on purpose. */
+  /* Mirror the overlay exactly like the webcam preview. The drawing code
+     stays in MediaPipe's raw-video coordinate space, so both layers match. */
+  transform: scaleX(-1);
 }
 
 .videoBox #message {
