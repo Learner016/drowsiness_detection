@@ -14,19 +14,14 @@ let lastQualityCheck = 0, latestQuality = true;
 function loadOpenCV() {
   if (cvPromise) return cvPromise;
   cvPromise = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("OpenCV loaded but did not initialize. Check the browser Network tab for a missing OpenCV file (404).")), 20000);
-    let settled = false;
-    const finish = () => {
-      if (!settled && window.cv?.Mat) { settled = true; clearTimeout(timeout); resolve(window.cv); }
-    };
-    // This local OpenCV build reads its configuration from Module before the
-    // script is loaded. Its runtime callback is more reliable than polling it.
-    window.Module = { onRuntimeInitialized: finish };
+    const timeout = setTimeout(() => reject(new Error("OpenCV.js took too long to load. Check that opencv.js is in the GitHub Pages folder.")), 30000);
     const script = document.createElement("script");
     script.src = "opencv.js";
-    script.onerror = () => { clearTimeout(timeout); settled = true; reject(new Error("OpenCV.js was not found. Upload opencv.js beside ddd.html.")); };
+    script.onerror = () => { clearTimeout(timeout); reject(new Error("OpenCV.js was not found. Upload opencv.js beside ddd.html.")); };
     script.onload = () => {
-      finish();
+      clearTimeout(timeout);
+      if (window.cv?.Mat) resolve(window.cv);
+      else reject(new Error("OpenCV.js loaded but did not expose its API. Replace the uploaded opencv.js with the copy in this project folder."));
     };
     document.head.append(script);
   });
