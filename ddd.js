@@ -3,6 +3,7 @@ import { FilesetResolver, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@m
 const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 const LEFT = [33, 160, 158, 133, 153, 144];
 const RIGHT = [362, 385, 387, 263, 373, 380];
+const FACE_OUTLINE = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
 const SAMPLES = 75, CLOSED_SECONDS = 1.5, THRESHOLD_RATIO = .72;
 const $ = id => document.getElementById(id);
 const video = $("video"), canvas = $("canvas"), ctx = canvas.getContext("2d");
@@ -46,8 +47,8 @@ function trimmedMean(values) { const sorted = [...values].sort((a,b) => a-b), cu
 function setStatus(text, warning = false) { $("status").textContent = text; $("status").style.color = warning ? "#ff4b54" : ""; }
 function resetCalibration() { leftValues=[]; rightValues=[]; thresholdLeft=thresholdRight=0; smoothLeft=smoothRight=undefined; closedAt=null; stopAlarm(); $("leftEar").textContent=$("rightEar").textContent=$("threshold").textContent="--"; $("closed").textContent="0.00 s"; }
 function stopAlarm() { if (alarm) { clearInterval(alarm); alarm=null; } }
-function beep() { audio ||= new (window.AudioContext || window.webkitAudioContext)(); const oscillator=audio.createOscillator(), gain=audio.createGain(); gain.gain.value=.12; oscillator.frequency.value=900; oscillator.connect(gain).connect(audio.destination); oscillator.start(); oscillator.stop(audio.currentTime+.22); }
-function startAlarm() { if (!alarm) { beep(); alarm=setInterval(beep,550); } }
+function beep() { audio ||= new (window.AudioContext || window.webkitAudioContext)(); const oscillator=audio.createOscillator(), gain=audio.createGain(); oscillator.type="square"; oscillator.frequency.value=1000; gain.gain.value=.16; oscillator.connect(gain).connect(audio.destination); oscillator.start(); oscillator.stop(audio.currentTime+.45); }
+function startAlarm() { if (!alarm) { beep(); alarm=setInterval(beep,600); } }
 
 function getOpenCVQuality() {
   const CV = window.cv;
@@ -77,7 +78,10 @@ function qualityForFrame(now) {
 function drawFace(landmarks) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const points = landmarks.map(p => ({ x:p.x*canvas.width, y:p.y*canvas.height }));
-  const xs=points.map(p=>p.x), ys=points.map(p=>p.y);
+  // A face-oval subset gives a close, stable rectangle; using all 478 points
+  // can include predictions just outside the visible face edge.
+  const outline = FACE_OUTLINE.map(index => points[index]);
+  const xs=outline.map(p=>p.x), ys=outline.map(p=>p.y);
   ctx.save(); ctx.strokeStyle=ctx.fillStyle="#3cc850"; ctx.lineWidth=3;
   ctx.strokeRect(Math.min(...xs), Math.min(...ys), Math.max(...xs)-Math.min(...xs), Math.max(...ys)-Math.min(...ys));
   for (const index of [...LEFT,...RIGHT]) { const p=points[index]; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill(); }
