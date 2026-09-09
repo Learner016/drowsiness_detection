@@ -103,6 +103,7 @@ function loop(now) {
 }
 
 async function start() {
+  let startupStep = "face model";
   try {
     $("error").textContent=""; setStatus("LOADING FACE MODEL...");
     // MediaPipe must finish first. Starting OpenCV at the same time can lock up
@@ -111,14 +112,15 @@ async function start() {
       const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm");
       landmarker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:"CPU"},runningMode:"VIDEO",numFaces:1,minFaceDetectionConfidence:.6,minFacePresenceConfidence:.6,minTrackingConfidence:.6});
     }
-    setStatus("LOADING OPENCV...");
+    startupStep = "OpenCV"; setStatus("LOADING OPENCV...");
     await loadOpenCV();
+    startupStep = "camera permission";
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:960},height:{ideal:540}},audio:false}); video.srcObject=stream; await video.play();
     canvas.width=video.videoWidth; canvas.height=video.videoHeight;
     // A low-resolution copy is enough for brightness/focus evaluation.
     work.width=160; work.height=90; lastQualityCheck=0; latestQuality=true;
     resetCalibration(); running=true; $("message").style.display="none"; $("start").disabled=true; $("stop").disabled=false; $("recalibrate").disabled=false; animation=requestAnimationFrame(loop);
-  } catch (error) { setStatus("COULD NOT START",true); $("error").textContent=`${error.message} Use GitHub Pages (HTTPS) and allow camera access.`; }
+  } catch (error) { console.error(`DDD startup failed during ${startupStep}:`, error); setStatus("COULD NOT START",true); $("error").textContent=`Failed during ${startupStep}: ${error.message} Use GitHub Pages (HTTPS) and allow camera access.`; }
 }
 function stop() { running=false; cancelAnimationFrame(animation); stopAlarm(); stream?.getTracks().forEach(track=>track.stop()); stream=null; video.srcObject=null; $("start").disabled=false; $("stop").disabled=true; $("recalibrate").disabled=true; $("message").style.display="block"; setStatus("STOPPED"); }
 $("start").onclick=start; $("stop").onclick=stop; $("recalibrate").onclick=resetCalibration; addEventListener("beforeunload",stop);
