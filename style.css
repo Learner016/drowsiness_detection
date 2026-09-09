@@ -1,0 +1,162 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #080b09;
+  color: #eef4ef;
+  font-family: Arial, sans-serif;
+}
+
+.app {
+  width: min(900px, 94%);
+  margin: 25px auto;
+}
+
+h1 {
+  text-align: center;
+  margin: 0;
+  font-size: clamp(24px, 5vw, 38px);
+}
+
+.sub {
+  text-align: center;
+  color: #9aa69d;
+  margin: 8px 0 20px;
+}
+
+.videoBox {
+  position: relative;
+  background: #000;
+  border: 2px solid #293229;
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.videoBox video,
+.videoBox canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.videoBox video {
+  transform: scaleX(-1);
+}
+
+.videoBox canvas {
+  pointer-events: none;
+  /* No CSS transform here anymore - app.js mirrors the
+     canvas drawing space directly inside draw(), so this
+     element is left un-transformed on purpose. */
+}
+
+.videoBox #message {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #000b;
+  padding: 18px 25px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.buttons button {
+  flex: 1;
+  padding: 13px;
+  border: 0;
+  border-radius: 9px;
+  background: #1d8d35;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.buttons button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.buttons button:not(.primary) {
+  background: #1b231d;
+}
+
+.status {
+  text-align: center;
+  padding: 10px;
+  border-radius: 9px;
+  background: #111612;
+  border: 1px solid #293229;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.result {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.result div,
+.ear {
+  background: #111612;
+  border: 1px solid #293229;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.result small {
+  display: block;
+  color: #9aa69d;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.result b {
+  font-size: 18px;
+}
+
+.ear {
+  display: flex;
+  justify-content: space-around;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  color: #cdd5cf;
+}
+
+.help {
+  text-align: center;
+  color: #9aa69d;
+}
+
+.error {
+  text-align: center;
+  color: #ff4b54;
+  min-height: 20px;
+}
+
+@media (max-width: 600px) {
+  .result {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .buttons button {
+    flex: 1 1 40%;
+  }
+}
