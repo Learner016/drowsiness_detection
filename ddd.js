@@ -103,9 +103,15 @@ function loop(now) {
 
 async function start() {
   try {
-    $("error").textContent=""; setStatus("LOADING MODELS...");
-    const [, vision] = await Promise.all([loadOpenCV(), FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm")]);
-    if (!landmarker) landmarker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:"CPU"},runningMode:"VIDEO",numFaces:1,minFaceDetectionConfidence:.6,minFacePresenceConfidence:.6,minTrackingConfidence:.6});
+    $("error").textContent=""; setStatus("LOADING FACE MODEL...");
+    // MediaPipe must finish first. Starting OpenCV at the same time can lock up
+    // the browser while both WebAssembly runtimes are initializing.
+    if (!landmarker) {
+      const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm");
+      landmarker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:"CPU"},runningMode:"VIDEO",numFaces:1,minFaceDetectionConfidence:.6,minFacePresenceConfidence:.6,minTrackingConfidence:.6});
+    }
+    setStatus("LOADING OPENCV...");
+    await loadOpenCV();
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:960},height:{ideal:540}},audio:false}); video.srcObject=stream; await video.play();
     canvas.width=video.videoWidth; canvas.height=video.videoHeight;
     // A low-resolution copy is enough for brightness/focus evaluation.
