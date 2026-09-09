@@ -15,13 +15,25 @@ function loadOpenCV() {
   if (cvPromise) return cvPromise;
   cvPromise = new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error("OpenCV.js took too long to load. Check that opencv.js is in the GitHub Pages folder.")), 30000);
+    let initialized = false;
+    // This legacy OpenCV bundle calls this callback just before it assigns
+    // its final API object to window.cv. Resolve without reading cv here;
+    // code after `await loadOpenCV()` runs on the next microtask, after the
+    // script has completed that assignment.
+    window.Module = {
+      onRuntimeInitialized() {
+        initialized = true;
+        clearTimeout(timeout);
+        resolve();
+      }
+    };
     const script = document.createElement("script");
     script.src = "opencv.js";
     script.onerror = () => { clearTimeout(timeout); reject(new Error("OpenCV.js was not found. Upload opencv.js beside ddd.html.")); };
     script.onload = () => {
-      clearTimeout(timeout);
-      if (window.cv?.Mat) resolve(window.cv);
-      else reject(new Error("OpenCV.js loaded but did not expose its API. Replace the uploaded opencv.js with the copy in this project folder."));
+      // Some OpenCV versions are fully synchronous and do not call the
+      // callback; support those too.
+      if (!initialized && window.cv?.Mat) { clearTimeout(timeout); resolve(); }
     };
     document.head.append(script);
   });
