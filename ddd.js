@@ -9,6 +9,7 @@ const video = $("video"), canvas = $("canvas"), ctx = canvas.getContext("2d");
 const work = document.createElement("canvas"), workCtx = work.getContext("2d", { willReadFrequently: true });
 let cvPromise, landmarker, stream, running = false, animation, lastVideoTime = -1;
 let leftValues = [], rightValues = [], thresholdLeft = 0, thresholdRight = 0, smoothLeft, smoothRight, closedAt = null, alarm, audio;
+let lastQualityCheck = 0, latestQuality = true;
 
 function loadOpenCV() {
   if (cvPromise) return cvPromise;
@@ -50,6 +51,16 @@ function getOpenCVQuality() {
   return good;
 }
 
+function qualityForFrame(now) {
+  // OpenCV runs on a small image once per second. Running it on every 960×540
+  // camera frame can make mobile browsers unresponsive.
+  if (now - lastQualityCheck > 1000) {
+    latestQuality = getOpenCVQuality();
+    lastQualityCheck = now;
+  }
+  return latestQuality;
+}
+
 function drawFace(landmarks) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const points = landmarks.map(p => ({ x:p.x*canvas.width, y:p.y*canvas.height }));
@@ -84,7 +95,7 @@ function loop(now) {
   if (!running) return;
   if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
     lastVideoTime=video.currentTime;
-    try { const quality=getOpenCVQuality(), result=landmarker.detectForVideo(video,Math.round(now)); if (result.faceLandmarks?.[0]) processFace(result.faceLandmarks[0],now,quality); else { ctx.clearRect(0,0,canvas.width,canvas.height); $("face").textContent="NO FACE"; $("eyes").textContent="NO FACE"; closedAt=null; stopAlarm(); setStatus("POSITION YOUR FACE IN THE CAMERA"); } }
+    try { const quality=qualityForFrame(now), result=landmarker.detectForVideo(video,Math.round(now)); if (result.faceLandmarks?.[0]) processFace(result.faceLandmarks[0],now,quality); else { ctx.clearRect(0,0,canvas.width,canvas.height); $("face").textContent="NO FACE"; $("eyes").textContent="NO FACE"; closedAt=null; stopAlarm(); setStatus("POSITION YOUR FACE IN THE CAMERA"); } }
     catch (error) { $("error").textContent=`Detection error: ${error.message}`; }
   }
   animation=requestAnimationFrame(loop);
@@ -96,7 +107,10 @@ async function start() {
     const [, vision] = await Promise.all([loadOpenCV(), FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm")]);
     if (!landmarker) landmarker=await FaceLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:"CPU"},runningMode:"VIDEO",numFaces:1,minFaceDetectionConfidence:.6,minFacePresenceConfidence:.6,minTrackingConfidence:.6});
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:960},height:{ideal:540}},audio:false}); video.srcObject=stream; await video.play();
-    canvas.width=work.width=video.videoWidth; canvas.height=work.height=video.videoHeight; resetCalibration(); running=true; $("message").style.display="none"; $("start").disabled=true; $("stop").disabled=false; $("recalibrate").disabled=false; animation=requestAnimationFrame(loop);
+    canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+    // A low-resolution copy is enough for brightness/focus evaluation.
+    work.width=160; work.height=90; lastQualityCheck=0; latestQuality=true;
+    resetCalibration(); running=true; $("message").style.display="none"; $("start").disabled=true; $("stop").disabled=false; $("recalibrate").disabled=false; animation=requestAnimationFrame(loop);
   } catch (error) { setStatus("COULD NOT START",true); $("error").textContent=`${error.message} Use GitHub Pages (HTTPS) and allow camera access.`; }
 }
 function stop() { running=false; cancelAnimationFrame(animation); stopAlarm(); stream?.getTracks().forEach(track=>track.stop()); stream=null; video.srcObject=null; $("start").disabled=false; $("stop").disabled=true; $("recalibrate").disabled=true; $("message").style.display="block"; setStatus("STOPPED"); }
