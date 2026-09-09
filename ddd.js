@@ -13,11 +13,12 @@ let leftValues = [], rightValues = [], thresholdLeft = 0, thresholdRight = 0, sm
 function loadOpenCV() {
   if (cvPromise) return cvPromise;
   cvPromise = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("OpenCV loaded but did not initialize. Check the browser Network tab for a missing OpenCV file (404).")), 20000);
     const script = document.createElement("script");
     script.src = "opencv.js";
-    script.onerror = () => reject(new Error("OpenCV.js could not load. Upload opencv.js beside ddd.html."));
+    script.onerror = () => { clearTimeout(timeout); reject(new Error("OpenCV.js was not found. Upload opencv.js beside ddd.html.")); };
     script.onload = () => {
-      const wait = () => window.cv?.Mat ? resolve(window.cv) : setTimeout(wait, 25);
+      const wait = () => window.cv?.Mat ? (clearTimeout(timeout), resolve(window.cv)) : setTimeout(wait, 25);
       wait();
     };
     document.head.append(script);
